@@ -1,6 +1,5 @@
 pandas
 datetime
 numpy
-streamlit
-altair<5
-imghdr
+streamlit>=1.20
+altair
