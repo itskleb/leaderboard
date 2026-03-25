@@ -3,3 +3,4 @@ datetime
 numpy
 streamlit
 altair<5
+imghdr
