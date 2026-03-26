@@ -95,15 +95,16 @@ if uploaded_file != None:
         df_net.loc[r,c] = net
     
     df_ny['Total New Youth'] = df_ny[months].sum(axis=1)
-    st.dataframe(df_ny)
+    df_ny = df_ny.reset_index(drop=True)
+    df_net = df_net.reset_index(drop=True)
     df_ny['Net Change from January'] = df_net[months].sum(axis=1)
     df_ny['Current Size'] = df.set_index('Unique')[month]
 
     display = df_ny[['District', 'Unit','Order','Total New Youth','Net Change from January','Current Size']].reset_index().drop('Unique',axis=1)
 
-    df.to_csv('Monthly Membership by unit.csv')
-    df_net.to_csv('Net change by month.csv')
-    df_ny.to_csv('New Youth.csv')
+    #df.to_csv('Monthly Membership by unit.csv')
+    #df_net.to_csv('Net change by month.csv')
+    #df_ny.to_csv('New Youth.csv')
 
 st.write("Leaders")
 st.dataframe(display)
