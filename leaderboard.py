@@ -5,7 +5,7 @@ from datetime import datetime as dt
 
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered")
 
-st.title("🏆 Leaderboard")
+st.title("🏆 GNYC Membership Leaderboard")
 
 uploaded_file = st.file_uploader("Upload Memebrship XLSX file", type=["xlsx"])
 uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
@@ -42,13 +42,13 @@ if uploaded_file != None:
     full['Boro'] = full['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
     full['Unique'] = full['Boro']+full['District']+full['Unit']
 
-    if len(df) == 0:
-        df = pd.concat([df,full],axis = 0)
-        df_net = pd.concat([df_net,df[['Unique','Boro','District','Unit','Order']]],axis = 0)
-        df_net = df_net.set_index('Unique')
-    else:
-        df[month] = df['Unique'].map(full.set_index('Unique')[month])
-        df = df.fillna(0.0)
+    #if len(df) == 0:
+    #    df = pd.concat([df,full],axis = 0)
+    #    df_net = pd.concat([df_net,df[['Unique','Boro','District','Unit','Order']]],axis = 0)
+    #    df_net = df_net.set_index('Unique')
+    #else:
+    df[month] = df['Unique'].map(full.set_index('Unique')[month])
+    df = df.fillna(0.0)
 
     newbies = pd.read_excel(uploaded_file_ny,skiprows=2)
     newbies = newbies.rename(re_name,axis=1)
