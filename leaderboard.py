@@ -97,7 +97,7 @@ df_ny.to_csv('New Youth.csv')
 tab1, tab2, tab3 = st.tabs(['Leaderboard','Full List','Upload'])
 #st.write("Leaders")
 col_sort = st.sidebar.selectbox(label = 'Select Column to sort', options = ['Total New Youth','Net Change from January','Current Size'])
-order = st.sidebar.selectbox(label='Choose Order',options=display.Order.unique().tolist())
+order = st.sidebar.selectbox(label='Choose Order',options=display.Order.unique().tolist(),index=None)
 if order is not None:
     frame = display.sort_values(col_sort,ascending=False)[display['Order']==order].reset_index()
 else:
