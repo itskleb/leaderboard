@@ -101,11 +101,11 @@ if uploaded_file != None:
     df_ny['Net Change from January'] = df_net[months].sum(axis=1)
     df_ny['Current Size'] = df[month]
 
-    display = df_ny[['District', 'Unit','Order','Total New Youth','Net Change from January','Current Size']].reset_index()#.drop('Unique',axis=1)
+display = df_ny[['District', 'Unit','Order','Total New Youth','Net Change from January','Current Size']].reset_index()#.drop('Unique',axis=1)
 
-    #df.to_csv('Monthly Membership by unit.csv')
-    #df_net.to_csv('Net change by month.csv')
-    #df_ny.to_csv('New Youth.csv')
+df.to_csv('Monthly Membership by unit.csv')
+df_net.to_csv('Net change by month.csv')
+df_ny.to_csv('New Youth.csv')
 
 tab1, tab2, tab3 = st.tabs(['Leaderboard','Full List','Upload'])
 #st.write("Leaders")
