@@ -34,7 +34,7 @@ try:
 except:
     pass
 
-st.dataframe(df_net)
+
 if uploaded_file != None:
     full = pd.read_excel(uploaded_file,skiprows=2)
     month = pd.read_excel(uploaded_file).columns[0].split('\n')[2].split(' ')[3]
@@ -107,5 +107,6 @@ if uploaded_file != None:
     #df_ny.to_csv('New Youth.csv')
 
 st.write("Leaders")
-st.dataframe(display)
-st.dataframe(df_net)
+col_sort = st.selectbox(label = 'Select Column to sort', options = ['Total New Youth','Net Change from January','Current Size'])
+st.dataframe(display.sort_values(col_sort,ascending=False))
+st.dataframe(df_ny)
