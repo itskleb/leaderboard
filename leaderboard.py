@@ -104,14 +104,18 @@ with tab2:
 with tab1:
     col1, col2, col3 = st.columns(3)
     frame = display.sort_values(col_sort,ascending=False).reset_index()
+    st.write(col_sort)
     with col1:
         st.write(frame['Unit'][0])
+        st.write(frame['District'][0])
         st.metric(label = '1st Place', value = frame[col_sort][0])
     with col2:
         st.write(frame['Unit'][1])
+        st.write(frame['District'][1])
         st.metric(label = '2nd Place', value = frame[col_sort][1])
     with col3:
         st.write(frame['Unit'][2])
+        st.write(frame['District'][2])
         st.metric(label = '3rd Place', value = frame[col_sort][2])
 
 with tab3:
