@@ -107,3 +107,4 @@ if uploaded_file != None:
 
 st.write("Leaders")
 st.dataframe(display)
+st.dataframe(df_net)
