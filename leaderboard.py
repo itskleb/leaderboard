@@ -22,7 +22,7 @@ except:
                                'July','August','September','October','November','December'])
 try:
     df_net = pd.read_csv('Net change by month.csv')
-    df_net = df_net.set_index('Unique').drop('Unnamed: 0',axis=1)
+    df_net = df_net.set_index('Unique')
 except:
     df_net = pd.DataFrame(columns=['Unique','Boro','District','Unit','Order',
                                 'January','February','March','April','May','June',
