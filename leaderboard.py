@@ -168,7 +168,7 @@ with tab1:
     for i, (col, medal) in enumerate(zip([col1, col2, col3], ["🥇", "🥈", "🥉"])):
         with col:
             if i < len(frame):
-                st.write(f"**{frame['Unit'][i] + medal}**")
+                st.write(f"## **{frame['Unit'][i] + medal}**")
                 st.write(f"**{frame['District'][i]}**")
                 st.metric(
                     label=f"{'1st' if i==0 else '2nd' if i==1 else '3rd'} Place",
