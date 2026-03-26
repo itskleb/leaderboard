@@ -103,15 +103,16 @@ with tab2:
 
 with tab1:
     col1, col2, col3 = st.columns(3)
+    frame = display.sort_values(col_sort,ascending=False).reset_index()
     with col1:
-        st.write(display.sort_values(col_sort,ascending=False)['Unit'][0])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort].iloc[0])
+        st.write(frame['Unit'][0])
+        st.metric(label = '1st Place', value = frame[col_sort][0])
     with col2:
-        st.write(display.sort_values(col_sort,ascending=False)['Unit'][1])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][1])
+        st.write(frame['Unit'][1])
+        st.metric(label = '1st Place', value = frame[col_sort][1])
     with col3:
-        st.write(display.sort_values(col_sort,ascending=False)['Unit'][2])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][2])
+        st.write(frame['Unit'][2])
+        st.metric(label = '1st Place', value = frame[col_sort][2])
 
 with tab3:
     pass
