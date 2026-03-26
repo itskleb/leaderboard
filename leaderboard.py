@@ -104,3 +104,6 @@ if uploaded_file != None:
     df.to_csv('Monthly Membership by unit.csv')
     df_net.to_csv('Net change by month.csv')
     df_ny.to_csv('New Youth.csv')
+
+st.write("Leaders")
+st.dataframe(display)
