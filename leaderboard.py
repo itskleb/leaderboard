@@ -22,26 +22,6 @@ if uploaded_file == None:
         df_ny = pd.read_csv('New Youth.csv')
         month = mon_dict[dt.today().month]
 
-"""df = pd.read_csv('Monthly Membership by unit.csv')
-    df = df.drop('Unnamed: 0')
-except:
-    df = pd.DataFrame(columns=['Unique','Boro','District','Unit','Order',
-                               'January','February','March','April','May','June',
-                               'July','August','September','October','November','December'])
-try:
-    df_net = pd.read_csv('Net change by month.csv')
-    df_net = df_net.set_index('Unique')
-except:
-    df_net = pd.DataFrame(columns=['Unique','Boro','District','Unit','Order',
-                                'January','February','March','April','May','June',
-                                'July','August','September','October','November','December'])
-try:
-    df_ny = pd.DataFrame(columns=['Unique','Boro','District','Unit','Order',
-                                'January','February','March','April','May','June',
-                                'July','August','September','October','November','December'])
-except:
-    pass"""
-
 
 if uploaded_file != None:
     full = pd.read_excel(uploaded_file,skiprows=2)
