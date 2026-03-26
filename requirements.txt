@@ -3,3 +3,4 @@ datetime
 numpy
 streamlit>=1.20
 altair
+openpyxl
