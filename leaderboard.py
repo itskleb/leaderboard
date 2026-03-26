@@ -97,13 +97,18 @@ df_ny.to_csv('New Youth.csv')
 tab1, tab2, tab3 = st.tabs(['Leaderboard','Full List','Upload'])
 #st.write("Leaders")
 col_sort = st.sidebar.selectbox(label = 'Select Column to sort', options = ['Total New Youth','Net Change from January','Current Size'])
+order = st.sidebar.selectbox(label='Choose Order',options=display.Order.unique().tolist())
+if order is not None:
+    frame = display.sort_values(col_sort,ascending=False)[frame['Order']==order].reset_index()
+else:
+    frame = display.sort_values(col_sort,ascending=False).reset_index()
 with tab2:
-    st.dataframe(display.sort_values(col_sort,ascending=False).drop('index',axis=1).reset_index(drop=True))
+    st.dataframe(frame.drop('index',axis=1).reset_index(drop=True))
     #st.dataframe(df_ny)
 
 with tab1:
     col1, col2, col3 = st.columns(3)
-    frame = display.sort_values(col_sort,ascending=False).reset_index()
+    
     st.write(col_sort)
     with col1:
         st.write(frame['Unit'][0] + "🥇")
