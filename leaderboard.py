@@ -83,8 +83,8 @@ if uploaded_file != None:
         df_net.loc[r,c] = net
     
 df_ny['Total New Youth'] = df_ny[months].sum(axis=1)
-df_ny = df_ny.reset_index()
-df_net = df_net.reset_index()
+#df_ny = df_ny.reset_index()
+#df_net = df_net.reset_index()
 df_ny['Net Change from January'] = df_net[months].sum(axis=1)
 df_ny['Current Size'] = df[month]
 
