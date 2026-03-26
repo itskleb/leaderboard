@@ -7,6 +7,8 @@ st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered"
 
 st.title("🏆 Leaderboard")
 
+uploaded_file = st.file_uploader("Upload Memebrship XLSX file", type=["xlsx"])
+uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
 
 
 months = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -125,5 +127,3 @@ with tab1:
         st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][2])
 
 with tab3:
-    uploaded_file = st.file_uploader("Upload Memebrship XLSX file", type=["xlsx"])
-    uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
