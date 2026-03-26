@@ -7,8 +7,7 @@ st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered"
 
 st.title("🏆 Leaderboard")
 
-uploaded_file = st.file_uploader("Upload Memebrship XLSX file", type=["xlsx"])
-uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
+
 
 months = ['January','February','March','April','May','June','July','August','September','October','November','December']
 mon_dict = dict(zip([i for i in range(1,13)],months))
@@ -117,10 +116,14 @@ with tab1:
     col1, col2, col3 = st.columns(3)
     with col1:
         st.write(display.sort_values(col_sort,ascending=False)['Unit'][0])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][0])
+        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort].iloc[0])
     with col2:
         st.write(display.sort_values(col_sort,ascending=False)['Unit'][1])
         st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][1])
     with col3:
         st.write(display.sort_values(col_sort,ascending=False)['Unit'][2])
         st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][2])
+
+with tab3:
+    uploaded_file = st.file_uploader("Upload Memebrship XLSX file", type=["xlsx"])
+    uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
