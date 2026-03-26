@@ -99,7 +99,7 @@ tab1, tab2, tab3 = st.tabs(['Leaderboard','Full List','Upload'])
 col_sort = st.sidebar.selectbox(label = 'Select Column to sort', options = ['Total New Youth','Net Change from January','Current Size'])
 order = st.sidebar.selectbox(label='Choose Order',options=display.Order.unique().tolist())
 if order is not None:
-    frame = display.sort_values(col_sort,ascending=False)[frame['Order']==order].reset_index()
+    frame = display.sort_values(col_sort,ascending=False)[display['Order']==order].reset_index()
 else:
     frame = display.sort_values(col_sort,ascending=False).reset_index()
 with tab2:
