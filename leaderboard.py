@@ -107,9 +107,10 @@ with tab2:
     #st.dataframe(df_ny)
 
 with tab1:
+    st.write(order,col_sort)
     col1, col2, col3 = st.columns(3)
     
-    st.write(col_sort)
+    
     with col1:
         st.write(frame['Unit'][0] + "🥇")
         st.write(frame['District'][0])
