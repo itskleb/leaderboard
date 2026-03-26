@@ -14,6 +14,9 @@ df_net = pd.read_csv('Net change by month.csv').set_index('Unique')
 df_ny  = pd.read_csv('New Youth.csv')
 month  = mon_dict[dt.today().month]
 
+if 'new_unit_uniques' not in st.session_state:
+    st.session_state.new_unit_uniques = set()
+
 tab1, tab2, tab3 = st.tabs(['Leaderboard', 'Full List', 'Upload'])
 
 with tab3:
@@ -33,9 +36,9 @@ with tab3:
 
         # File 2 already has 'Order' and 'Unit' columns directly; only rename District/Boro
         rename_membership = {
-            'CouncilNumber Hierarchy - District':      'District',
+            'CouncilNumber Hierarchy - District':        'District',
             'CouncilNumber Hierarchy - SubDistrictName': 'Boro',
-            'Current Month':                            month,
+            'Current Month':                              month,
         }
         full = full.rename(rename_membership, axis=1)
         full = full[['Boro', 'District', 'Unit', 'Order', month]]
@@ -48,7 +51,12 @@ with tab3:
         new_units = full[~full['Unique'].isin(existing_uniques)]
 
         if not new_units.empty:
-            st.info(f"🆕 {len(new_units)} new unit(s) detected — adding to all three datasets.")
+            # Remember new unit keys so they stay off the leaderboard
+            st.session_state.new_unit_uniques.update(new_units['Unique'].tolist())
+            st.info(
+                f"🆕 {len(new_units)} new unit(s) detected — added to all three datasets "
+                f"and hidden from the leaderboard."
+            )
 
             # Build skeleton rows for df (one row per new unit, all month cols = 0)
             new_df_rows = new_units[['Unique', 'Boro', 'District', 'Unit', 'Order']].copy()
@@ -68,9 +76,9 @@ with tab3:
         # ── New Youth file ────────────────────────────────────────────────
         newbies = pd.read_excel(uploaded_file_ny, skiprows=2)
         rename_ny = {
-            'CouncilNumber Hierarchy - District':      'District',
+            'CouncilNumber Hierarchy - District':        'District',
             'CouncilNumber Hierarchy - SubDistrictName': 'Boro',
-            'CouncilNumber Hierarchy - Unit':           'Unit',
+            'CouncilNumber Hierarchy - Unit':             'Unit',
         }
         newbies = newbies.rename(rename_ny, axis=1)
         newbies = newbies[['Boro', 'District', 'Unit', 'RegStatusxMonth', 'Month Year']]
@@ -107,16 +115,30 @@ with tab3:
         st.success(f"✅ Data updated for **{month}**. CSVs saved.")
 
 # ── Derived display frame (always computed from current CSVs) ─────────────
-df_ny_display = df_ny.copy() if 'Unique' not in df_ny.columns else df_ny.set_index('Unique')
+df_ny_display  = df_ny.copy() if 'Unique' not in df_ny.columns else df_ny.set_index('Unique')
 df_net_display = df_net.copy()
 
-df_ny_display['Total New Youth']        = df_ny_display[months].sum(axis=1)
+df_ny_display['Total New Youth']         = df_ny_display[months].sum(axis=1)
 df_ny_display['Net Change from January'] = df_net_display[months].sum(axis=1)
-df_ny_display['Current Size']           = df[month].values
+df_ny_display['Current Size']            = df[month].values
+
+# ── Troop net growth adjustment ───────────────────────────────────────────
+# Troops gain members via crossover (Arrow of Light → Scout BSA) which inflates
+# net membership without representing genuine new recruitment. So for Troops:
+#   • Net > 0  → use Total New Youth (actual recruited scouts only)
+#   • Net <= 0 → keep raw net (a real loss and should be shown as-is)
+is_troop     = df_ny_display['Order'] == '2 - Troops'
+net_positive = df_ny_display['Net Change from January'] > 0
+df_ny_display.loc[is_troop & net_positive, 'Net Change from January'] = \
+    df_ny_display.loc[is_troop & net_positive, 'Total New Youth']
 
 display = df_ny_display[
     ['District', 'Unit', 'Order', 'Total New Youth', 'Net Change from January', 'Current Size']
 ].reset_index()
+
+# ── Exclude brand-new units from leaderboard & full list ─────────────────
+if st.session_state.new_unit_uniques:
+    display = display[~display['Unique'].isin(st.session_state.new_unit_uniques)]
 
 # ── Sidebar controls ──────────────────────────────────────────────────────
 col_sort = st.sidebar.selectbox(
