@@ -127,3 +127,4 @@ with tab1:
         st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][2])
 
 with tab3:
+    pass
