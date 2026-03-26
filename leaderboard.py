@@ -107,7 +107,7 @@ with tab2:
     #st.dataframe(df_ny)
 
 with tab1:
-    st.write(order,col_sort)
+    st.write(order,"|",col_sort)
     col1, col2, col3 = st.columns(3)
     
     
