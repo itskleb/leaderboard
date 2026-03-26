@@ -107,7 +107,7 @@ if uploaded_file != None:
     #df_ny.to_csv('New Youth.csv')
 
 tab1, tab2, tab3 = st.tabs(['Leaderboard','Full List','Upload'])
-st.write("Leaders")
+#st.write("Leaders")
 col_sort = st.sidebar.selectbox(label = 'Select Column to sort', options = ['Total New Youth','Net Change from January','Current Size'])
 with tab2:
     st.dataframe(display.sort_values(col_sort,ascending=False))
@@ -117,10 +117,10 @@ with tab1:
     col1, col2, col3 = st.columns(3)
     with col1:
         st.write(display.sort_values(col_sort,ascending=False)['Unit'][0])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort].loc[0])
+        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][0])
     with col2:
         st.write(display.sort_values(col_sort,ascending=False)['Unit'][1])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort].loc[1])
+        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][1])
     with col3:
         st.write(display.sort_values(col_sort,ascending=False)['Unit'][2])
-        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort].loc[2])
+        st.metric(label = '1st Place', value = display.sort_values(col_sort,ascending=False)[col_sort][2])
