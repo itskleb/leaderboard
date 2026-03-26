@@ -93,7 +93,7 @@ if uploaded_file != None:
         r=row.Unique
         c=curr
         df_net.loc[r,c] = net
-
+    st.dataframe(df_ny)
     df_ny['Total New Youth'] = df_ny[months].sum(axis=1)
 
     df_ny['Net Change from January'] = df_net[months].sum(axis=1)
