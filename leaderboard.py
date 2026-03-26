@@ -98,7 +98,7 @@ tab1, tab2, tab3 = st.tabs(['Leaderboard','Full List','Upload'])
 #st.write("Leaders")
 col_sort = st.sidebar.selectbox(label = 'Select Column to sort', options = ['Total New Youth','Net Change from January','Current Size'])
 with tab2:
-    st.dataframe(display.sort_values(col_sort,ascending=False))
+    st.dataframe(display.sort_values(col_sort,ascending=False).drop('index',axis=1).reset_index(drop=True))
     #st.dataframe(df_ny)
 
 with tab1:
