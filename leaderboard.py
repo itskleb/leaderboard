@@ -109,10 +109,10 @@ with tab1:
         st.metric(label = '1st Place', value = frame[col_sort][0])
     with col2:
         st.write(frame['Unit'][1])
-        st.metric(label = '1st Place', value = frame[col_sort][1])
+        st.metric(label = '2nd Place', value = frame[col_sort][1])
     with col3:
         st.write(frame['Unit'][2])
-        st.metric(label = '1st Place', value = frame[col_sort][2])
+        st.metric(label = '3rd Place', value = frame[col_sort][2])
 
 with tab3:
     pass
