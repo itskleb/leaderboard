@@ -34,7 +34,7 @@ try:
 except:
     pass
 
-
+st.dataframe(df_net)
 if uploaded_file != None:
     full = pd.read_excel(uploaded_file,skiprows=2)
     month = pd.read_excel(uploaded_file).columns[0].split('\n')[2].split(' ')[3]
