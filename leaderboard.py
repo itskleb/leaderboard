@@ -43,6 +43,25 @@ with tab3:
         full['Boro']   = full['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
         full['Unique'] = full['Boro'] + full['District'] + full['Unit']
 
+        # ── Detect new units not yet in stored CSVs ───────────────────────
+        existing_uniques = set(df['Unique'])
+        new_units = full[~full['Unique'].isin(existing_uniques)]
+
+        if not new_units.empty:
+            st.info(f"🆕 {len(new_units)} new unit(s) detected — adding to all three datasets.")
+
+            # Build skeleton rows for df (one row per new unit, all month cols = 0)
+            new_df_rows = new_units[['Unique', 'Boro', 'District', 'Unit', 'Order']].copy()
+            for m in months:
+                new_df_rows[m] = 0.0
+            df = pd.concat([df, new_df_rows], ignore_index=True)
+
+            # Build skeleton rows for df_net (same shape, all month cols = 0)
+            new_net_rows = new_units[['Unique']].copy().set_index('Unique')
+            for m in months:
+                new_net_rows[m] = 0.0
+            df_net = pd.concat([df_net, new_net_rows])
+
         df[month] = df['Unique'].map(full.set_index('Unique')[month])
         df = df.fillna(0.0)
 
@@ -59,12 +78,15 @@ with tab3:
         newbies['Boro']   = newbies['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
         newbies['Unique'] = newbies['Boro'] + newbies['District'] + newbies['Unit']
 
-        df_ny['Unique']   = df['Unique']
-        df_ny['Boro']     = df['Boro']
-        df_ny['District'] = df['District']
-        df_ny['Order']    = df['Order']
-        df_ny['Unit']     = df['Unit']
-        df_ny = df_ny.set_index('Unique').fillna(0.0)
+        # Rebuild df_ny indexed on Unique, adding skeleton rows for new units
+        identity = df[['Unique', 'Boro', 'District', 'Unit', 'Order']].set_index('Unique')
+        df_ny = df_ny.set_index('Unique') if 'Unique' in df_ny.columns else df_ny
+        missing_in_ny = identity.index.difference(df_ny.index)
+        if not missing_in_ny.empty:
+            new_ny_rows = pd.DataFrame(0.0, index=missing_in_ny, columns=df_ny.columns)
+            df_ny = pd.concat([df_ny, new_ny_rows])
+        df_ny[['Boro', 'District', 'Unit', 'Order']] = identity
+        df_ny = df_ny.fillna(0.0)
 
         for col in months:
             frame_ny = newbies[newbies['Month Year'] == col]
