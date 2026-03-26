@@ -16,12 +16,12 @@ mon_dict = dict(zip([i for i in range(1,13)],months))
 
 if uploaded_file == None:
         df = pd.read_csv('Monthly Membership by unit.csv')
-        df = df.drop('Unnamed: 0')
+        #df = df.drop('Unnamed: 0')
         df_net = pd.read_csv('Net change by month.csv')
         df_net = df_net.set_index('Unique')
         df_ny = pd.read_csv('New Youth.csv')
         month = mon_dict[dt.today().month]
-        
+
 """df = pd.read_csv('Monthly Membership by unit.csv')
     df = df.drop('Unnamed: 0')
 except:
