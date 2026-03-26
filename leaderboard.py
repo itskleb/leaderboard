@@ -98,7 +98,7 @@ if uploaded_file != None:
     df_ny = df_ny.reset_index()
     df_net = df_net.reset_index()
     df_ny['Net Change from January'] = df_net[months].sum(axis=1)
-    df_ny['Current Size'] = df.set_index('Unique')[month]
+    df_ny['Current Size'] = df[month]
 
     display = df_ny[['District', 'Unit','Order','Total New Youth','Net Change from January','Current Size']].reset_index()#.drop('Unique',axis=1)
 
