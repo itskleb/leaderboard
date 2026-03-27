@@ -1,3 +1,6 @@
+App · PY
+Copy
+
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -20,6 +23,18 @@ if 'new_unit_uniques' not in st.session_state:
 tab1, tab2, tab3 = st.tabs(['Leaderboard', 'Full List', 'Upload'])
  
 with tab3:
+    if 'upload_auth' not in st.session_state:
+        st.session_state.upload_auth = False
+ 
+    if not st.session_state.upload_auth:
+        pw = st.text_input("Enter password to access uploads", type="password")
+        if pw == "bsa640gnyc":
+            st.session_state.upload_auth = True
+            st.rerun()
+        elif pw:
+            st.error("Incorrect password.")
+        st.stop()
+ 
     uploaded_file    = st.file_uploader("Upload Membership XLSX file", type=["xlsx"])
     uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
  
@@ -168,8 +183,8 @@ with tab1:
     for i, (col, medal) in enumerate(zip([col1, col2, col3], ["🥇", "🥈", "🥉"])):
         with col:
             if i < len(frame):
-                st.write(f"## **{frame['Unit'][i] + medal}**")
-                st.write(f"**{frame['District'][i]}**")
+                st.write(frame['Unit'][i] + medal)
+                st.write(frame['District'][i])
                 st.metric(
                     label=f"{'1st' if i==0 else '2nd' if i==1 else '3rd'} Place",
                     value=frame[col_sort][i]
