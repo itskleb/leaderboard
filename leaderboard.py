@@ -30,101 +30,100 @@ with tab3:
             st.rerun()
         elif pw:
             st.error("Incorrect password.")
-        st.stop()
+    else:
+        uploaded_file    = st.file_uploader("Upload Membership XLSX file", type=["xlsx"])
+        uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
  
-    uploaded_file    = st.file_uploader("Upload Membership XLSX file", type=["xlsx"])
-    uploaded_file_ny = st.file_uploader("Upload New Youth XLSX file", type=["xlsx"])
+        if uploaded_file is not None and uploaded_file_ny is not None:
  
-    if uploaded_file is not None and uploaded_file_ny is not None:
+            # ── Membership file ───────────────────────────────────────────────
+            full = pd.read_excel(uploaded_file, skiprows=2)
  
-        # ── Membership file ───────────────────────────────────────────────
-        full = pd.read_excel(uploaded_file, skiprows=2)
+            # Parse month from header: "Month Year is Current Month" → word index 3
+            raw_header = pd.read_excel(uploaded_file).columns[0]
+            month_token = raw_header.split('\n')[2].split(' ')[3]
+            curr_mon = dt.today().month
+            month = mon_dict[curr_mon] if month_token == 'Current' else month_token
  
-        # Parse month from header: "Month Year is Current Month" → word index 3
-        raw_header = pd.read_excel(uploaded_file).columns[0]
-        month_token = raw_header.split('\n')[2].split(' ')[3]
-        curr_mon = dt.today().month
-        month = mon_dict[curr_mon] if month_token == 'Current' else month_token
+            # File 2 already has 'Order' and 'Unit' columns directly; only rename District/Boro
+            rename_membership = {
+                'CouncilNumber Hierarchy - District':        'District',
+                'CouncilNumber Hierarchy - SubDistrictName': 'Boro',
+                'Current Month':                              month,
+            }
+            full = full.rename(rename_membership, axis=1)
+            full = full[['Boro', 'District', 'Unit', 'Order', month]]
+            full = full[~full['Boro'].isna()]
+            full['Boro']   = full['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
+            full['Unique'] = full['Boro'] + full['District'] + full['Unit']
  
-        # File 2 already has 'Order' and 'Unit' columns directly; only rename District/Boro
-        rename_membership = {
-            'CouncilNumber Hierarchy - District':        'District',
-            'CouncilNumber Hierarchy - SubDistrictName': 'Boro',
-            'Current Month':                              month,
-        }
-        full = full.rename(rename_membership, axis=1)
-        full = full[['Boro', 'District', 'Unit', 'Order', month]]
-        full = full[~full['Boro'].isna()]
-        full['Boro']   = full['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
-        full['Unique'] = full['Boro'] + full['District'] + full['Unit']
+            # ── Detect new units not yet in stored CSVs ───────────────────────
+            existing_uniques = set(df['Unique'])
+            new_units = full[~full['Unique'].isin(existing_uniques)]
  
-        # ── Detect new units not yet in stored CSVs ───────────────────────
-        existing_uniques = set(df['Unique'])
-        new_units = full[~full['Unique'].isin(existing_uniques)]
+            if not new_units.empty:
+                # Remember new unit keys so they stay off the leaderboard
+                st.session_state.new_unit_uniques.update(new_units['Unique'].tolist())
+                st.info(
+                    f"🆕 {len(new_units)} new unit(s) detected — added to all three datasets "
+                    f"and hidden from the leaderboard."
+                )
  
-        if not new_units.empty:
-            # Remember new unit keys so they stay off the leaderboard
-            st.session_state.new_unit_uniques.update(new_units['Unique'].tolist())
-            st.info(
-                f"🆕 {len(new_units)} new unit(s) detected — added to all three datasets "
-                f"and hidden from the leaderboard."
-            )
+                # Build skeleton rows for df (one row per new unit, all month cols = 0)
+                new_df_rows = new_units[['Unique', 'Boro', 'District', 'Unit', 'Order']].copy()
+                for m in months:
+                    new_df_rows[m] = 0.0
+                df = pd.concat([df, new_df_rows], ignore_index=True)
  
-            # Build skeleton rows for df (one row per new unit, all month cols = 0)
-            new_df_rows = new_units[['Unique', 'Boro', 'District', 'Unit', 'Order']].copy()
-            for m in months:
-                new_df_rows[m] = 0.0
-            df = pd.concat([df, new_df_rows], ignore_index=True)
+                # Build skeleton rows for df_net (same shape, all month cols = 0)
+                new_net_rows = new_units[['Unique']].copy().set_index('Unique')
+                for m in months:
+                    new_net_rows[m] = 0.0
+                df_net = pd.concat([df_net, new_net_rows])
  
-            # Build skeleton rows for df_net (same shape, all month cols = 0)
-            new_net_rows = new_units[['Unique']].copy().set_index('Unique')
-            for m in months:
-                new_net_rows[m] = 0.0
-            df_net = pd.concat([df_net, new_net_rows])
+            df[month] = df['Unique'].map(full.set_index('Unique')[month])
+            df = df.fillna(0.0)
  
-        df[month] = df['Unique'].map(full.set_index('Unique')[month])
-        df = df.fillna(0.0)
+            # ── New Youth file ────────────────────────────────────────────────
+            newbies = pd.read_excel(uploaded_file_ny, skiprows=2)
+            rename_ny = {
+                'CouncilNumber Hierarchy - District':        'District',
+                'CouncilNumber Hierarchy - SubDistrictName': 'Boro',
+                'CouncilNumber Hierarchy - Unit':             'Unit',
+            }
+            newbies = newbies.rename(rename_ny, axis=1)
+            newbies = newbies[['Boro', 'District', 'Unit', 'RegStatusxMonth', 'Month Year']]
+            newbies = newbies[~newbies['Boro'].isna()]
+            newbies['Boro']   = newbies['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
+            newbies['Unique'] = newbies['Boro'] + newbies['District'] + newbies['Unit']
  
-        # ── New Youth file ────────────────────────────────────────────────
-        newbies = pd.read_excel(uploaded_file_ny, skiprows=2)
-        rename_ny = {
-            'CouncilNumber Hierarchy - District':        'District',
-            'CouncilNumber Hierarchy - SubDistrictName': 'Boro',
-            'CouncilNumber Hierarchy - Unit':             'Unit',
-        }
-        newbies = newbies.rename(rename_ny, axis=1)
-        newbies = newbies[['Boro', 'District', 'Unit', 'RegStatusxMonth', 'Month Year']]
-        newbies = newbies[~newbies['Boro'].isna()]
-        newbies['Boro']   = newbies['Boro'].apply(lambda x: x.split(' (')[0].split(' 6')[0])
-        newbies['Unique'] = newbies['Boro'] + newbies['District'] + newbies['Unit']
+            # Rebuild df_ny indexed on Unique, adding skeleton rows for new units
+            identity = df[['Unique', 'Boro', 'District', 'Unit', 'Order']].set_index('Unique')
+            df_ny = df_ny.set_index('Unique') if 'Unique' in df_ny.columns else df_ny
+            missing_in_ny = identity.index.difference(df_ny.index)
+            if not missing_in_ny.empty:
+                new_ny_rows = pd.DataFrame(0.0, index=missing_in_ny, columns=df_ny.columns)
+                df_ny = pd.concat([df_ny, new_ny_rows])
+            df_ny[['Boro', 'District', 'Unit', 'Order']] = identity
+            df_ny = df_ny.fillna(0.0)
  
-        # Rebuild df_ny indexed on Unique, adding skeleton rows for new units
-        identity = df[['Unique', 'Boro', 'District', 'Unit', 'Order']].set_index('Unique')
-        df_ny = df_ny.set_index('Unique') if 'Unique' in df_ny.columns else df_ny
-        missing_in_ny = identity.index.difference(df_ny.index)
-        if not missing_in_ny.empty:
-            new_ny_rows = pd.DataFrame(0.0, index=missing_in_ny, columns=df_ny.columns)
-            df_ny = pd.concat([df_ny, new_ny_rows])
-        df_ny[['Boro', 'District', 'Unit', 'Order']] = identity
-        df_ny = df_ny.fillna(0.0)
+            for col in months:
+                frame_ny = newbies[newbies['Month Year'] == col]
+                for _, row in frame_ny.iterrows():
+                    df_ny.loc[row.Unique, col] = row['RegStatusxMonth']
  
-        for col in months:
-            frame_ny = newbies[newbies['Month Year'] == col]
-            for _, row in frame_ny.iterrows():
-                df_ny.loc[row.Unique, col] = row['RegStatusxMonth']
+            # ── Net change ───────────────────────────────────────────────────
+            for _, row in df.iterrows():
+                curr = mon_dict[curr_mon]
+                past = mon_dict[curr_mon - 1] if curr_mon != 1 else curr
+                df_net.loc[row.Unique, curr] = row[curr] - row[past]
  
-        # ── Net change ───────────────────────────────────────────────────
-        for _, row in df.iterrows():
-            curr = mon_dict[curr_mon]
-            past = mon_dict[curr_mon - 1] if curr_mon != 1 else curr
-            df_net.loc[row.Unique, curr] = row[curr] - row[past]
+            # ── Persist ──────────────────────────────────────────────────────
+            df.to_csv('Monthly Membership by unit.csv', index=False)
+            df_net.to_csv('Net change by month.csv')
+            df_ny.to_csv('New Youth.csv')
  
-        # ── Persist ──────────────────────────────────────────────────────
-        df.to_csv('Monthly Membership by unit.csv', index=False)
-        df_net.to_csv('Net change by month.csv')
-        df_ny.to_csv('New Youth.csv')
- 
-        st.success(f"✅ Data updated for **{month}**. CSVs saved.")
+            st.success(f"✅ Data updated for **{month}**. CSVs saved.")
  
 # ── Derived display frame (always computed from current CSVs) ─────────────
 df_ny_display  = df_ny.copy() if 'Unique' not in df_ny.columns else df_ny.set_index('Unique')
