@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 from streamlit_extras.let_it_rain import *
 from datetime import datetime as dt
+import os
  
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered")
 st.title("🏆 GNYC Membership Leaderboard")
