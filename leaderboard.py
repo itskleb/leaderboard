@@ -222,11 +222,11 @@ with tab5:
             if i < len(ny_df):
                 if i == 0:
                     lead = ny_df['Unit'].tolist()[i]
-                st.write(ny_df['Unit'][i] + medal)
-                st.write(ny_df['District'][i])
+                st.write(ny_df['Unit'].tolist()[i] + medal)
+                st.write(ny_df['District'].tolist()[i])
                 st.metric(
                     label=f"{'1st' if i==0 else '2nd' if i==1 else '3rd'} Place",
-                    value=ny_df[side_month][i]
+                    value=ny_df[side_month].tolist()[i]
                 )
             else:
                 st.write("—")
