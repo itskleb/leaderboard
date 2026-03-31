@@ -214,14 +214,14 @@ with tab3:
     st.dataframe(temp.drop('Unique', axis=1))
 
 with tab5:
-    st.write(order, "|", col_sort)
+    #st.write(order, "|", col_sort)
     col1, col2, col3 = st.columns(3)
  
     for i, (col, medal) in enumerate(zip([col1, col2, col3], ["🥇", "🥈", "🥉"])):
         with col:
             if i < len(ny_df):
                 if i == 0:
-                    lead = ny_df['Unit'][i]
+                    lead = ny_df['Unit'].tolist()[i]
                 st.write(ny_df['Unit'][i] + medal)
                 st.write(ny_df['District'][i])
                 st.metric(
