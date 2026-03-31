@@ -177,7 +177,7 @@ frame = frame.reset_index(drop=True)
 ny_df = pd.read_csv("New Youth.csv")
 ny_df['Percent New Youth'] = round((ny_df[side_month]/ny_df['Current Size'])*100,2)
 ny_df = ny_df.sort_values(by=[side_month,"Percent New Youth"],ascending=False).reset_index(drop=True)
-ny_df.index = [i for i in range(1,1+len(ny_df))]
+
 
 # ── Tab 2: Full list ──────────────────────────────────────────────────────
 with tab2:
@@ -209,8 +209,9 @@ with tab1:
             falling_speed=3,
             animation_length=1)
 with tab3:
-
-    st.dataframe(ny_df.drop('Unique', axis=1))
+    temp = ny_df
+    temp.index = [i for i in range(1,1+len(ny_df))]
+    st.dataframe(temp.drop('Unique', axis=1))
 
 with tab5:
     st.write(order, "|", col_sort)
