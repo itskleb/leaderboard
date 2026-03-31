@@ -205,5 +205,5 @@ with tab1:
 with tab3:
     ny_df = pd.read_csv("New Youth.csv")
     ny_df['Percent New Youth'] = round((ny_df[side_month]/ny_df['Current Size'])*100,2)
-    ny_df = ny_df.sort_values(by=[side_month,"Percent New Youth"],ascending=False).set_index([i for i in range(1,1+len(ny_df))],drop=True)
+    ny_df = ny_df.sort_values(by=[side_month,"Percent New Youth"],ascending=False).reset_index(drop=True)
     st.dataframe(ny_df.drop('Unique', axis=1))
