@@ -180,6 +180,8 @@ with tab1:
     for i, (col, medal) in enumerate(zip([col1, col2, col3], ["🥇", "🥈", "🥉"])):
         with col:
             if i < len(frame):
+                if i == 0:
+                    lead = frame['Unit'][i]
                 st.write(frame['Unit'][i] + medal)
                 st.write(frame['District'][i])
                 st.metric(
@@ -191,7 +193,7 @@ with tab1:
     butt=st.button(label="Hooray!!")
     if butt:
         #st.balloons()
-        rain(emoji="🎉",
+        rain(emoji=f"🎉{lead}🎉",
         font_size=54,
         falling_speed=3,
         animation_length=1)
