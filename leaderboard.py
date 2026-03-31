@@ -18,9 +18,9 @@ month  = mon_dict[dt.today().month]
 if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = set()
  
-tab1, tab2, tab3 = st.tabs(['Leaderboard', 'Full List', 'Upload'])
+tab1, tab2, tab3, tab4 = st.tabs(['Leaderboard', 'Full List', 'Upload'])
  
-with tab3:
+with tab4:
     if 'upload_auth' not in st.session_state:
         st.session_state.upload_auth = False
  
@@ -197,3 +197,6 @@ with tab1:
             font_size=54,
             falling_speed=3,
             animation_length=1)
+with tab3:
+    ny_df = pd.read_csv("New Youth.csv")
+    st.dataframe(ny_df)
