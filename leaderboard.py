@@ -18,7 +18,7 @@ month  = mon_dict[dt.today().month]
 if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = set()
  
-tab1, tab2, tab3, tab4 = st.tabs(['Leaderboard', 'Yearly Tracker',"New Youth Tracker", 'Upload'])
+tab5, tab1, tab2, tab3, tab4 = st.tabs(['Monthly Leaderboard','Yearly Leaderboard', 'Yearly Tracker',"New Youth Tracker", 'Upload'])
  
 with tab4:
     if 'upload_auth' not in st.session_state:
@@ -174,6 +174,11 @@ if order is not None:
     frame = frame[frame['Order'] == order]
 frame = frame.reset_index(drop=True)
  
+ny_df = pd.read_csv("New Youth.csv")
+ny_df['Percent New Youth'] = round((ny_df[side_month]/ny_df['Current Size'])*100,2)
+ny_df = ny_df.sort_values(by=[side_month,"Percent New Youth"],ascending=False).reset_index(drop=True)
+ny_df.index = [i for i in range(1,1+len(ny_df))]
+
 # ── Tab 2: Full list ──────────────────────────────────────────────────────
 with tab2:
     st.dataframe(frame.drop(columns=['Unique'], errors='ignore'))
@@ -204,8 +209,30 @@ with tab1:
             falling_speed=3,
             animation_length=1)
 with tab3:
-    ny_df = pd.read_csv("New Youth.csv")
-    ny_df['Percent New Youth'] = round((ny_df[side_month]/ny_df['Current Size'])*100,2)
-    ny_df = ny_df.sort_values(by=[side_month,"Percent New Youth"],ascending=False).reset_index(drop=True)
-    ny_df.index = [i for i in range(1,1+len(ny_df))]
+
     st.dataframe(ny_df.drop('Unique', axis=1))
+
+with tab5:
+    st.write(order, "|", col_sort)
+    col1, col2, col3 = st.columns(3)
+ 
+    for i, (col, medal) in enumerate(zip([col1, col2, col3], ["🥇", "🥈", "🥉"])):
+        with col:
+            if i < len(ny_df):
+                if i == 0:
+                    lead = ny_df['Unit'][i]
+                st.write(ny_df['Unit'][i] + medal)
+                st.write(ny_df['District'][i])
+                st.metric(
+                    label=f"{'1st' if i==0 else '2nd' if i==1 else '3rd'} Place",
+                    value=ny_df[side_month][i]
+                )
+            else:
+                st.write("—")
+    butt=st.button(label="Hooray!!")
+    if butt:
+        #st.balloons()
+        rain(emoji=f"🎉{lead}🎉",
+            font_size=54,
+            falling_speed=3,
+            animation_length=1)
