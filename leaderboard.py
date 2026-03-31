@@ -75,6 +75,7 @@ with tab4:
             # ── Detect new units not yet in stored CSVs ───────────────────────
             existing_uniques = set(df['Unique'])
             new_units = full[~full['Unique'].isin(existing_uniques)]
+            new_unit_count = len(new_units)
  
             if not new_units.empty:
                 # Remember new unit keys so they stay off the leaderboard
