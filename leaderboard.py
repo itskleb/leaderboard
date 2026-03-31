@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 from streamlit_extras.let_it_rain import rain
 from datetime import datetime as dt
+from zoneinfo import ZoneInfo
 import os
 import json
 
@@ -12,7 +13,24 @@ st.title("🏆 GNYC Membership Leaderboard")
 months = ['January','February','March','April','May','June','July','August','September','October','November','December']
 mon_dict = dict(zip(range(1, 13), months))
 
-LOG_FILE = 'upload_log.json'
+LOG_FILE       = 'upload_log.json'
+NEW_UNITS_FILE = 'new_units.json'
+
+def load_new_units() -> set:
+    if not os.path.exists(NEW_UNITS_FILE):
+        return set()
+    try:
+        content = open(NEW_UNITS_FILE).read().strip()
+        return set(json.loads(content)) if content else set()
+    except (json.JSONDecodeError, ValueError):
+        os.replace(NEW_UNITS_FILE, NEW_UNITS_FILE + '.corrupt')
+        return set()
+
+def save_new_units(uniques: set):
+    tmp = NEW_UNITS_FILE + '.tmp'
+    with open(tmp, 'w') as f:
+        json.dump(sorted(uniques), f, indent=2)
+    os.replace(tmp, NEW_UNITS_FILE)
 
 def load_log():
     if not os.path.exists(LOG_FILE):
@@ -45,7 +63,7 @@ df_ny  = pd.read_csv('New Youth.csv')
 month  = mon_dict[dt.today().month]
 
 if 'new_unit_uniques' not in st.session_state:
-    st.session_state.new_unit_uniques = set()
+    st.session_state.new_unit_uniques = load_new_units()
 
 tab5, tab1, tab2, tab3, tab4 = st.tabs(['Monthly Leaderboard', 'Yearly Leaderboard', 'Yearly Tracker', 'New Youth Tracker', 'Upload'])
 
@@ -92,6 +110,7 @@ with tab4:
 
             if not new_units.empty:
                 st.session_state.new_unit_uniques.update(new_units['Unique'].tolist())
+                save_new_units(st.session_state.new_unit_uniques)
                 st.info(
                     f"🆕 {new_unit_count} new unit(s) detected — added to all three datasets "
                     f"and hidden from the leaderboard."
@@ -150,7 +169,7 @@ with tab4:
 
             # ── Append upload log entry ───────────────────────────────────────
             append_log({
-                'timestamp':       dt.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'timestamp':       dt.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M:%S EST'),
                 'month':           month,
                 'membership_file': uploaded_file.name,
                 'new_youth_file':  uploaded_file_ny.name,
