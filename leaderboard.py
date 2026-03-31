@@ -199,4 +199,4 @@ with tab1:
             animation_length=1)
 with tab3:
     ny_df = pd.read_csv("New Youth.csv")
-    st.dataframe(ny_df)
+    st.dataframe(ny_df.drop('Unique', axis=1))
