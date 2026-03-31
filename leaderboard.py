@@ -194,4 +194,4 @@ with tab1:
         rain(emoji="🎉",
         font_size=54,
         falling_speed=5,
-        animation_length=5)
+        animation_length=3)
