@@ -165,7 +165,8 @@ order = st.sidebar.selectbox(
 
 side_month = st.sidebar.selectbox(
     'Choose Month',
-    options=months
+    options=months,
+    index=month
 )
  
 frame = display.sort_values(col_sort, ascending=False)
