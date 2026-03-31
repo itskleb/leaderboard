@@ -194,6 +194,6 @@ with tab1:
     if butt:
         #st.balloons()
         rain(emoji=f"🎉{lead}🎉",
-        font_size=54,
-        falling_speed=3,
-        animation_length=1)
+            font_size=54,
+            falling_speed=3,
+            animation_length=1)
