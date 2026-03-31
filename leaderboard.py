@@ -18,7 +18,7 @@ month  = mon_dict[dt.today().month]
 if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = set()
  
-tab1, tab2, tab3, tab4 = st.tabs(['Leaderboard', 'Full List',"New Youth", 'Upload'])
+tab1, tab2, tab3, tab4 = st.tabs(['Leaderboard', 'Yearly Tracker',"New Youth Tracker", 'Upload'])
  
 with tab4:
     if 'upload_auth' not in st.session_state:
@@ -162,6 +162,11 @@ order = st.sidebar.selectbox(
     options=display['Order'].unique().tolist(),
     index=None
 )
+
+side_month = st.sidebar.selectbox(
+    'Choose Month',
+    options=months
+)
  
 frame = display.sort_values(col_sort, ascending=False)
 if order is not None:
@@ -199,4 +204,5 @@ with tab1:
             animation_length=1)
 with tab3:
     ny_df = pd.read_csv("New Youth.csv")
+    ny_df['Percent New Youth'] = round((ny_df[side_month]/ny_df['Current Size'])*100,2)
     st.dataframe(ny_df.drop('Unique', axis=1))
