@@ -230,7 +230,7 @@ with tab5:
                 )
             else:
                 st.write("—")
-    butt2=st.button(label="Hooray!!")
+    butt2=st.button(label="Hooray!!",key='button2')
     if butt2:
         #st.balloons()
         rain(emoji=f"🎉{lead}🎉",
