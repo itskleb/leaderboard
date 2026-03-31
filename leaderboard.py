@@ -14,6 +14,20 @@ df     = pd.read_csv('Monthly Membership by unit.csv')
 df_net = pd.read_csv('Net change by month.csv').set_index('Unique')
 df_ny  = pd.read_csv('New Youth.csv')
 month  = mon_dict[dt.today().month]
+
+LOG_FILE = 'upload_log.json'
+ 
+def load_log():
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE) as f:
+            return json.load(f)
+    return []
+ 
+def append_log(entry: dict):
+    log = load_log()
+    log.append(entry)
+    with open(LOG_FILE, 'w') as f:
+        json.dump(log, f, indent=2)
  
 if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = set()
@@ -123,7 +137,17 @@ with tab4:
             df.to_csv('Monthly Membership by unit.csv', index=False)
             df_net.to_csv('Net change by month.csv')
             df_ny.to_csv('New Youth.csv')
- 
+
+             # ── Append upload log entry ───────────────────────────────────────
+            append_log({
+                'timestamp':        dt.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'month':            month,
+                'membership_file':  uploaded_file.name,
+                'new_youth_file':   uploaded_file_ny.name,
+                'total_units':      len(df),
+                'new_units_added':  new_unit_count,
+            })
+
             st.success(f"✅ Data updated for **{month}**. CSVs saved.")
  
 # ── Derived display frame (always computed from current CSVs) ─────────────
