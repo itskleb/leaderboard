@@ -193,5 +193,5 @@ with tab1:
         #st.balloons()
         rain(emoji="🎉",
         font_size=54,
-        falling_speed=1,
+        falling_speed=3,
         animation_length=1)
