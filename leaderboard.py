@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+from streamlit_extras.let_it_rain import *
 from datetime import datetime as dt
  
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered")
@@ -189,4 +190,8 @@ with tab1:
                 st.write("—")
     butt=st.button(label="Hooray!!")
     if butt:
-        st.balloons()
+        #st.balloons()
+        rain(emoji="🎉",
+        font_size=54,
+        falling_speed=5,
+        animation_length=5)
