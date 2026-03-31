@@ -187,4 +187,6 @@ with tab1:
                 )
             else:
                 st.write("—")
-    st.button(label="Hooray!!",on_click=st.balloons())
+    butt=st.button(label="Hooray!!")
+    if butt:
+        st.balloons()
