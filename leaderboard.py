@@ -214,7 +214,7 @@ with tab3:
     st.dataframe(temp.drop('Unique', axis=1))
 
 with tab5:
-    #st.write(order, "|", col_sort)
+    st.write(side_month, "|", col_sort)
     col1, col2, col3 = st.columns(3)
  
     for i, (col, medal) in enumerate(zip([col1, col2, col3], ["🥇", "🥈", "🥉"])):
