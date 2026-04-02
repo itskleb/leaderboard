@@ -307,7 +307,11 @@ side_month = st.sidebar.selectbox(
 )
 side_month_idx = month_idx[side_month]
 
-frame = display.sort_values(col_sort, ascending=False)
+display['Percent New Youth'] = (
+    display['Total New Youth'] / display['Current Size'].replace(0, np.nan) * 100
+).round(2)
+
+frame = display.sort_values('Percent New Youth', ascending=False)
 if order is not None:
     frame = frame[frame['Order'] == order]
 frame = frame.reset_index(drop=True)
@@ -361,11 +365,13 @@ with tab1:
         if lead:
             rain(emoji=f"🎉{lead}🎉", font_size=54, falling_speed=3, animation_length=1)
 
-# ── Tab 3: New Youth Tracker ──────────────────────────────────────────────
+# ── Tab 3: New Youth Tracker (yearly, sorted by Percent New Youth) ────────
 with tab3:
-    temp = ny_df.copy()
-    temp.index = range(1, len(ny_df) + 1)
-    st.dataframe(temp.drop('Unique', axis=1, errors='ignore'))
+    yearly_cols = ['District', 'Unit', 'Order', 'Total New Youth',
+                   'Percent New Youth', 'Net Change from January', 'Current Size']
+    temp = frame[[c for c in yearly_cols if c in frame.columns]].copy()
+    temp.index = range(1, len(temp) + 1)
+    st.dataframe(temp, use_container_width=True)
 
 # ── Tab 5: Monthly Leaderboard ────────────────────────────────────────────
 with tab5:
