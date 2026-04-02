@@ -13,7 +13,8 @@ st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered"
 st.title("🏆 GNYC Membership Leaderboard")
 
 months = ['January','February','March','April','May','June','July','August','September','October','November','December']
-mon_dict = dict(zip(range(1, 13), months))
+mon_dict   = dict(zip(range(1, 13), months))
+month_idx  = {m: i for i, m in enumerate(months)}  # January→0, February→1 …
 
 EXCLUDED_UNITS = {'Pack 0015 FP', 'Pack 0015', 'Pack 0015 BP'}
 
@@ -27,7 +28,6 @@ GH_HEADERS = {
     "Accept": "application/vnd.github.v3+json",
 }
 
-# ── Low-level GitHub I/O (not cached — used by writes) ───────────────────
 def gh_get(path: str) -> dict:
     r = requests.get(f"{GH_API}/{path}", headers=GH_HEADERS,
                      params={"ref": GH_BRANCH})
@@ -53,10 +53,9 @@ def write_csv_to_gh(path: str, sha: str, df: pd.DataFrame, message: str):
 def write_json_to_gh(path: str, sha: str, obj, message: str):
     gh_put(path, json.dumps(obj, indent=2).encode(), sha, message)
 
-# ── Cached loaders — only re-run when cache is explicitly cleared ─────────
+# ── Cached loader ─────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Loading data from GitHub...")
 def load_all_data():
-    """Fetch all CSVs and JSON files from GitHub in one cached call."""
     def _read_csv(path):
         data = gh_get(path)
         return pd.read_csv(io.BytesIO(base64.b64decode(data["content"]))), data["sha"]
@@ -64,7 +63,7 @@ def load_all_data():
     def _read_json(path):
         try:
             data = gh_get(path)
-            sha = data["sha"]
+            sha  = data["sha"]
             content = base64.b64decode(data["content"]).strip()
             if not content:
                 return None, sha
@@ -74,35 +73,39 @@ def load_all_data():
                 return None, ""
             raise
         except (json.JSONDecodeError, ValueError):
-            sha = gh_get(path)["sha"]
-            return None, sha
+            return None, gh_get(path)["sha"]
 
     df,     sha_df  = _read_csv("Monthly Membership by unit.csv")
     df_net, sha_net = _read_csv("Net change by month.csv")
     df_ny,  sha_ny  = _read_csv("New Youth.csv")
-
     log_data, sha_log = _read_json("upload_log.json")
     nu_data,  sha_nu  = _read_json("new_units.json")
 
     return (df, sha_df, df_net, sha_net, df_ny, sha_ny,
             log_data, sha_log, nu_data, sha_nu)
 
-# ── Load (from cache on reruns, fresh on first load or after upload) ──────
 (df, sha_df, df_net, sha_net, df_ny, sha_ny,
  _log_data, sha_log, _nu_data, sha_nu) = load_all_data()
 
 df_net = df_net.set_index('Unique')
 month  = mon_dict[dt.today().month]
 
-upload_log           = _log_data if isinstance(_log_data, list) else []
-sha_log              = sha_log or ""
-_persisted_new_units = set(_nu_data) if isinstance(_nu_data, list) else set()
-sha_nu               = sha_nu or ""
+upload_log = _log_data if isinstance(_log_data, list) else []
+sha_log    = sha_log or ""
+
+# new_units.json is now a dict: { unique_key: start_month_name }
+# Support legacy flat-list format by migrating on load
+if isinstance(_nu_data, dict):
+    _persisted_new_units = _nu_data           # {unique: start_month}
+elif isinstance(_nu_data, list):
+    _persisted_new_units = {u: None for u in _nu_data}  # migrate; start_month unknown
+else:
+    _persisted_new_units = {}
+sha_nu = sha_nu or ""
 
 if 'new_unit_uniques' not in st.session_state:
-    st.session_state.new_unit_uniques = _persisted_new_units
+    st.session_state.new_unit_uniques = _persisted_new_units  # {unique: start_month}
 
-# ── Last upload caption ───────────────────────────────────────────────────
 if upload_log:
     _last = upload_log[-1]
     st.caption(f"Last updated: **{_last['timestamp']}** · {_last['month']}")
@@ -126,9 +129,7 @@ with tab4:
 
         if uploaded_file is not None and uploaded_file_ny is not None:
 
-            # ── Membership file ───────────────────────────────────────────────
             full = pd.read_excel(uploaded_file, skiprows=2)
-
             raw_header  = pd.read_excel(uploaded_file).columns[0]
             month_token = raw_header.split('\n')[2].split(' ')[3]
             curr_mon    = dt.today().month
@@ -151,12 +152,13 @@ with tab4:
             new_unit_count   = len(new_units)
 
             if not new_units.empty:
-                added = [u for u in new_units['Unique'].tolist()
-                         if u not in st.session_state.new_unit_uniques]
-                st.session_state.new_unit_uniques.update(added)
+                for u in new_units['Unique'].tolist():
+                    if u not in st.session_state.new_unit_uniques:
+                        # Record unique → start month
+                        st.session_state.new_unit_uniques[u] = month
                 st.info(
-                    f"🆕 {new_unit_count} new unit(s) detected — added to all three datasets "
-                    f"and hidden from the leaderboard."
+                    f"🆕 {new_unit_count} new unit(s) detected — added to all datasets. "
+                    f"They will appear in the monthly leaderboard starting next month."
                 )
                 new_df_rows = new_units[['Unique', 'Boro', 'District', 'Unit', 'Order']].copy()
                 for m in months:
@@ -171,7 +173,6 @@ with tab4:
             df[month] = df['Unique'].map(full.set_index('Unique')[month])
             df = df.fillna(0.0)
 
-            # ── New Youth file ────────────────────────────────────────────────
             newbies = pd.read_excel(uploaded_file_ny, skiprows=2)
             rename_ny = {
                 'CouncilNumber Hierarchy - District':        'District',
@@ -198,21 +199,21 @@ with tab4:
                 for _, row in frame_ny.iterrows():
                     df_ny.loc[row.Unique, col] = row['RegStatusxMonth']
 
-            # ── Net change ───────────────────────────────────────────────────
             for _, row in df.iterrows():
                 curr = mon_dict[curr_mon]
                 past = mon_dict[curr_mon - 1] if curr_mon != 1 else curr
                 df_net.loc[row.Unique, curr] = row[curr] - row[past]
 
-            # ── Commit everything to GitHub ───────────────────────────────────
-            ts = dt.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M:%S EST')
+            ts         = dt.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M:%S EST')
             commit_msg = f"Data update: {month} ({ts})"
 
             with st.spinner("Saving to GitHub..."):
                 write_csv_to_gh("Monthly Membership by unit.csv", sha_df,  df,                  commit_msg)
                 write_csv_to_gh("Net change by month.csv",        sha_net, df_net.reset_index(), commit_msg)
                 write_csv_to_gh("New Youth.csv",                  sha_ny,  df_ny.reset_index(),  commit_msg)
-                write_json_to_gh("new_units.json",  sha_nu,  sorted(st.session_state.new_unit_uniques), f"Update new_units.json ({ts})")
+                write_json_to_gh("new_units.json", sha_nu,
+                                 st.session_state.new_unit_uniques,
+                                 f"Update new_units.json ({ts})")
                 upload_log.append({
                     'timestamp':       ts,
                     'month':           month,
@@ -221,13 +222,13 @@ with tab4:
                     'total_units':     len(df),
                     'new_units_added': new_unit_count,
                 })
-                write_json_to_gh("upload_log.json", sha_log, upload_log, f"Update upload_log.json ({ts})")
+                write_json_to_gh("upload_log.json", sha_log, upload_log,
+                                 f"Update upload_log.json ({ts})")
 
-            # Clear cache so next rerun fetches fresh data from GitHub
             load_all_data.clear()
             st.success(f"✅ Data updated for **{month}** and committed to GitHub.")
 
-        # ── Upload log display ────────────────────────────────────────────────
+        # ── Upload log + new unit log ─────────────────────────────────────────
         st.divider()
         st.subheader("Upload Log")
         if upload_log:
@@ -237,11 +238,32 @@ with tab4:
         else:
             st.caption("No uploads recorded yet.")
 
+        if st.session_state.new_unit_uniques:
+            st.divider()
+            st.subheader("New Unit Log")
+            nu_rows = [
+                {'Unique': u, 'Start Month': sm if sm else 'Unknown'}
+                for u, sm in st.session_state.new_unit_uniques.items()
+            ]
+            st.dataframe(pd.DataFrame(nu_rows), use_container_width=True, hide_index=True)
+
 # ── Derived display frame ─────────────────────────────────────────────────
 df_ny_display  = df_ny.copy() if 'Unique' not in df_ny.columns else df_ny.set_index('Unique')
 df_net_display = df_net.copy()
 
-df_ny_display['Total New Youth']         = df_ny_display[months].sum(axis=1)
+# new_unit_uniques: {unique: start_month}
+nu_map = st.session_state.new_unit_uniques  # {unique: start_month_name | None}
+
+# For yearly: zero out new-youth months on or before start month for new units
+df_ny_adj = df_ny_display[months].copy()
+for unique, start_month in nu_map.items():
+    if unique in df_ny_adj.index and start_month in month_idx:
+        start_i = month_idx[start_month]
+        # Zero months up to and including start month
+        zero_cols = months[:start_i + 1]
+        df_ny_adj.loc[unique, zero_cols] = 0.0
+
+df_ny_display['Total New Youth']         = df_ny_adj.sum(axis=1)
 df_ny_display['Net Change from January'] = df_net_display[months].sum(axis=1)
 df_ny_display['Current Size']            = df[month].values
 
@@ -255,9 +277,9 @@ display = df_ny_display[
     ['District', 'Unit', 'Order', 'Total New Youth', 'Net Change from January', 'Current Size']
 ].reset_index()
 
-# ── Apply exclusions to both leaderboards ────────────────────────────────
-excluded_uniques = st.session_state.new_unit_uniques
-display = display[~display['Unique'].isin(excluded_uniques)]
+# ── Exclusions ────────────────────────────────────────────────────────────
+# Yearly: exclude all new units entirely
+display = display[~display['Unique'].isin(nu_map.keys())]
 display = display[~display['Unit'].isin(EXCLUDED_UNITS)]
 
 # ── Sidebar controls ──────────────────────────────────────────────────────
@@ -275,15 +297,29 @@ side_month = st.sidebar.selectbox(
     options=months,
     index=dt.today().month - 1
 )
+side_month_idx = month_idx[side_month]
 
 frame = display.sort_values(col_sort, ascending=False)
 if order is not None:
     frame = frame[frame['Order'] == order]
 frame = frame.reset_index(drop=True)
 
+# ── Monthly leaderboard: include new units only after their start month ───
 ny_df = df_ny.reset_index() if 'Unique' not in df_ny.columns else df_ny.copy()
-ny_df = ny_df[~ny_df['Unique'].isin(excluded_uniques)]
 ny_df = ny_df[~ny_df['Unit'].isin(EXCLUDED_UNITS)]
+
+# Filter new units: only show if side_month comes AFTER their start month
+def _monthly_eligible(row):
+    u = row['Unique']
+    if u not in nu_map:
+        return True  # established unit — always show
+    start = nu_map[u]
+    if start is None or start not in month_idx:
+        return False  # unknown start — keep hidden
+    return side_month_idx > month_idx[start]  # strictly after start month
+
+ny_df = ny_df[ny_df.apply(_monthly_eligible, axis=1)]
+
 if order is not None:
     ny_df = ny_df[ny_df['Order'] == order]
 ny_df['Percent New Youth'] = round((ny_df[side_month] / ny_df['Current Size']) * 100, 2)
