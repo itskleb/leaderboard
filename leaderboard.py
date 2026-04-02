@@ -288,7 +288,7 @@ display = df_ny_display[
 ].reset_index()
 
 # ── Exclusion list: new units + hardcoded exceptions ─────────────────────
-EXCLUDED_UNITS = {'Pack 0015 FP', 'Pack 0015'}   # always off all leaderboards
+EXCLUDED_UNITS = {'Pack 0015 BT', 'Pack 0015'}   # always off all leaderboards
 excluded_uniques = st.session_state.new_unit_uniques
 
 display = display[~display['Unique'].isin(excluded_uniques)]
