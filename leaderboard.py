@@ -315,7 +315,7 @@ if order is not None:
     frame = frame[frame['Order'] == order]
 frame = frame.reset_index(drop=True)
 
-ny_df = df_ny.copy() if 'Unique' not in df_ny.columns else df_ny.reset_index()
+ny_df = df_ny.reset_index() if 'Unique' not in df_ny.columns else df_ny.copy()
 ny_df = ny_df[~ny_df['Unique'].isin(excluded_uniques)]
 ny_df = ny_df[~ny_df['Unit'].isin(EXCLUDED_UNITS)]
 ny_df['Percent New Youth'] = round((ny_df[side_month] / ny_df['Current Size']) * 100, 2)
