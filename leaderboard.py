@@ -311,7 +311,7 @@ display['Percent New Youth'] = (
     display['Total New Youth'] / display['Current Size'].replace(0, np.nan) * 100
 ).round(2)
 
-frame = display.sort_values('Percent New Youth', ascending=False)
+frame = display.sort_values(['Total New Youth', 'Percent New Youth'], ascending=False)
 if order is not None:
     frame = frame[frame['Order'] == order]
 frame = frame.reset_index(drop=True)
