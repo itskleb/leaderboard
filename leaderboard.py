@@ -284,6 +284,8 @@ frame = frame.reset_index(drop=True)
 ny_df = df_ny.reset_index() if 'Unique' not in df_ny.columns else df_ny.copy()
 ny_df = ny_df[~ny_df['Unique'].isin(excluded_uniques)]
 ny_df = ny_df[~ny_df['Unit'].isin(EXCLUDED_UNITS)]
+if order is not None:
+    ny_df = ny_df[ny_df['Order'] == order]
 ny_df['Percent New Youth'] = round((ny_df[side_month] / ny_df['Current Size']) * 100, 2)
 ny_df = ny_df.sort_values(by=[side_month, 'Percent New Youth'], ascending=False).reset_index(drop=True)
 
@@ -323,7 +325,7 @@ with tab3:
 
 # ── Tab 5: Monthly Leaderboard ────────────────────────────────────────────
 with tab5:
-    st.write(f"{side_month} New Youth")
+    st.write(f"{side_month} New Youth" + (f" · {order}" if order else ""))
     col1, col2, col3 = st.columns(3)
 
     lead_monthly = None
