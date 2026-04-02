@@ -12,6 +12,34 @@ import requests
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered")
 st.title("🏆 GNYC Membership Leaderboard")
 
+# ── Quick log peek for the header note (full load happens below) ──────────
+def _peek_last_upload() -> str:
+    try:
+        import requests, base64, json
+        _token  = st.secrets["GITHUB_TOKEN"]
+        _repo   = st.secrets["GITHUB_REPO"]
+        _branch = st.secrets["GITHUB_BRANCH"]
+        r = requests.get(
+            f"https://api.github.com/repos/{_repo}/contents/upload_log.json",
+            headers={"Authorization": f"token {_token}",
+                     "Accept": "application/vnd.github.v3+json"},
+            params={"ref": _branch},
+        )
+        if r.status_code != 200:
+            return ""
+        content = base64.b64decode(r.json()["content"]).strip()
+        log = json.loads(content) if content else []
+        if log:
+            last = log[-1]
+            return f"Last updated: **{last['timestamp']}** · {last['month']}"
+    except Exception:
+        pass
+    return ""
+
+_header_note = _peek_last_upload()
+if _header_note:
+    st.caption(_header_note)
+
 months = ['January','February','March','April','May','June','July','August','September','October','November','December']
 mon_dict = dict(zip(range(1, 13), months))
 
@@ -100,18 +128,6 @@ if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = _persisted_new_units
 
 # ── Last upload note ──────────────────────────────────────────────────────
-if upload_log:
-    _last = upload_log[-1]
-    st.markdown(
-        f'<div style="background:#f0f4ff;border:1px solid #c0cfe8;border-radius:10px;'
-        f'padding:10px 18px;margin-bottom:16px;display:inline-block">'
-        f'<span style="font-size:13px;color:#555;font-weight:500">LAST UPLOAD</span><br>'
-        f'<span style="font-size:20px;font-weight:700;color:#1a2e5a">{_last["timestamp"]}</span>'
-        f'&nbsp;&nbsp;<span style="color:#555;font-size:14px">({_last["month"]})</span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-
 tab5, tab1, tab2, tab3, tab4 = st.tabs(['Monthly Leaderboard', 'Yearly Leaderboard', 'Yearly Tracker', 'New Youth Tracker', 'Upload'])
 
 with tab4:
@@ -271,9 +287,12 @@ display = df_ny_display[
     ['District', 'Unit', 'Order', 'Total New Youth', 'Net Change from January', 'Current Size']
 ].reset_index()
 
-# ── Exclude brand-new units ───────────────────────────────────────────────
-if st.session_state.new_unit_uniques:
-    display = display[~display['Unique'].isin(st.session_state.new_unit_uniques)]
+# ── Exclusion list: new units + hardcoded exceptions ─────────────────────
+EXCLUDED_UNITS = {'Pack 0015 FP', 'Pack 0015'}   # always off all leaderboards
+excluded_uniques = st.session_state.new_unit_uniques
+
+display = display[~display['Unique'].isin(excluded_uniques)]
+display = display[~display['Unit'].isin(EXCLUDED_UNITS)]
 
 # ── Sidebar controls ──────────────────────────────────────────────────────
 col_sort = st.sidebar.selectbox(
@@ -297,6 +316,8 @@ if order is not None:
 frame = frame.reset_index(drop=True)
 
 ny_df = df_ny.copy() if 'Unique' not in df_ny.columns else df_ny.reset_index()
+ny_df = ny_df[~ny_df['Unique'].isin(excluded_uniques)]
+ny_df = ny_df[~ny_df['Unit'].isin(EXCLUDED_UNITS)]
 ny_df['Percent New Youth'] = round((ny_df[side_month] / ny_df['Current Size']) * 100, 2)
 ny_df = ny_df.sort_values(by=[side_month, 'Percent New Youth'], ascending=False).reset_index(drop=True)
 
