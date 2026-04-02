@@ -105,6 +105,9 @@ sha_nu = sha_nu or ""
 
 if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = _persisted_new_units  # {unique: start_month}
+elif isinstance(st.session_state.new_unit_uniques, set):
+    # Migrate legacy set → dict
+    st.session_state.new_unit_uniques = {u: None for u in st.session_state.new_unit_uniques}
 
 if upload_log:
     _last = upload_log[-1]
