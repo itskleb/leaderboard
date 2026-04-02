@@ -12,122 +12,101 @@ import requests
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="centered")
 st.title("🏆 GNYC Membership Leaderboard")
 
-# ── Quick log peek for the header note (full load happens below) ──────────
-def _peek_last_upload() -> str:
-    try:
-        import requests, base64, json
-        _token  = st.secrets["GITHUB_TOKEN"]
-        _repo   = st.secrets["GITHUB_REPO"]
-        _branch = st.secrets["GITHUB_BRANCH"]
-        r = requests.get(
-            f"https://api.github.com/repos/{_repo}/contents/upload_log.json",
-            headers={"Authorization": f"token {_token}",
-                     "Accept": "application/vnd.github.v3+json"},
-            params={"ref": _branch},
-        )
-        if r.status_code != 200:
-            return ""
-        content = base64.b64decode(r.json()["content"]).strip()
-        log = json.loads(content) if content else []
-        if log:
-            last = log[-1]
-            return f"Last updated: **{last['timestamp']}** · {last['month']}"
-    except Exception:
-        pass
-    return ""
-
-_header_note = _peek_last_upload()
-if _header_note:
-    st.caption(_header_note)
-
 months = ['January','February','March','April','May','June','July','August','September','October','November','December']
 mon_dict = dict(zip(range(1, 13), months))
 
-# ── GitHub helpers ────────────────────────────────────────────────────────
+EXCLUDED_UNITS = {'Pack 0015 FP', 'Pack 0015', 'Pack 0015 BP'}
+
+# ── GitHub config ─────────────────────────────────────────────────────────
 GH_TOKEN  = st.secrets["GITHUB_TOKEN"]
-GH_REPO   = st.secrets["GITHUB_REPO"]    # "owner/repo"
-GH_BRANCH = st.secrets["GITHUB_BRANCH"]  # "main"
+GH_REPO   = st.secrets["GITHUB_REPO"]
+GH_BRANCH = st.secrets["GITHUB_BRANCH"]
 GH_API    = f"https://api.github.com/repos/{GH_REPO}/contents"
 GH_HEADERS = {
     "Authorization": f"token {GH_TOKEN}",
     "Accept": "application/vnd.github.v3+json",
 }
 
+# ── Low-level GitHub I/O (not cached — used by writes) ───────────────────
 def gh_get(path: str) -> dict:
-    """Fetch a file's metadata + content from GitHub."""
     r = requests.get(f"{GH_API}/{path}", headers=GH_HEADERS,
                      params={"ref": GH_BRANCH})
     r.raise_for_status()
     return r.json()
 
 def gh_put(path: str, content_bytes: bytes, sha: str, message: str):
-    """Create or update a file on GitHub."""
     payload = {
         "message": message,
         "content": base64.b64encode(content_bytes).decode(),
         "branch":  GH_BRANCH,
         "sha":     sha,
     }
-    r = requests.put(f"{GH_API}/{path}", headers=GH_HEADERS,
-                     json=payload)
+    r = requests.put(f"{GH_API}/{path}", headers=GH_HEADERS, json=payload)
     r.raise_for_status()
     return r.json()
 
-def read_csv_from_gh(path: str) -> tuple[pd.DataFrame, str]:
-    """Return (DataFrame, sha) for a CSV stored on GitHub."""
-    data = gh_get(path)
-    content = base64.b64decode(data["content"])
-    return pd.read_csv(io.BytesIO(content)), data["sha"]
-
 def write_csv_to_gh(path: str, sha: str, df: pd.DataFrame, message: str):
-    """Commit a DataFrame as a CSV back to GitHub."""
     buf = io.BytesIO()
     df.to_csv(buf, index=False)
     gh_put(path, buf.getvalue(), sha, message)
 
-def read_json_from_gh(path: str) -> tuple[list | dict, str]:
-    """Return (parsed object, sha). Returns (None, sha) if file missing or empty."""
-    try:
-        data = gh_get(path)
-        sha = data["sha"]
-        content = base64.b64decode(data["content"]).strip()
-        if not content:
-            return None, sha
-        return json.loads(content), sha
-    except requests.HTTPError as e:
-        if e.response.status_code == 404:
-            return None, ""
-        raise
-    except (json.JSONDecodeError, ValueError):
-        # Malformed file — fetch sha so we can overwrite it cleanly
-        sha = gh_get(path)["sha"]
-        return None, sha
-
 def write_json_to_gh(path: str, sha: str, obj, message: str):
-    """Commit a JSON-serialisable object back to GitHub."""
-    content_bytes = json.dumps(obj, indent=2).encode()
-    gh_put(path, content_bytes, sha, message)
+    gh_put(path, json.dumps(obj, indent=2).encode(), sha, message)
 
-# ── Load CSVs from GitHub ─────────────────────────────────────────────────
-df,     sha_df     = read_csv_from_gh("Monthly Membership by unit.csv")
-df_net, sha_net    = read_csv_from_gh("Net change by month.csv")
-df_ny,  sha_ny     = read_csv_from_gh("New Youth.csv")
+# ── Cached loaders — only re-run when cache is explicitly cleared ─────────
+@st.cache_data(show_spinner="Loading data from GitHub...")
+def load_all_data():
+    """Fetch all CSVs and JSON files from GitHub in one cached call."""
+    def _read_csv(path):
+        data = gh_get(path)
+        return pd.read_csv(io.BytesIO(base64.b64decode(data["content"]))), data["sha"]
+
+    def _read_json(path):
+        try:
+            data = gh_get(path)
+            sha = data["sha"]
+            content = base64.b64decode(data["content"]).strip()
+            if not content:
+                return None, sha
+            return json.loads(content), sha
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                return None, ""
+            raise
+        except (json.JSONDecodeError, ValueError):
+            sha = gh_get(path)["sha"]
+            return None, sha
+
+    df,     sha_df  = _read_csv("Monthly Membership by unit.csv")
+    df_net, sha_net = _read_csv("Net change by month.csv")
+    df_ny,  sha_ny  = _read_csv("New Youth.csv")
+
+    log_data, sha_log = _read_json("upload_log.json")
+    nu_data,  sha_nu  = _read_json("new_units.json")
+
+    return (df, sha_df, df_net, sha_net, df_ny, sha_ny,
+            log_data, sha_log, nu_data, sha_nu)
+
+# ── Load (from cache on reruns, fresh on first load or after upload) ──────
+(df, sha_df, df_net, sha_net, df_ny, sha_ny,
+ _log_data, sha_log, _nu_data, sha_nu) = load_all_data()
+
 df_net = df_net.set_index('Unique')
 month  = mon_dict[dt.today().month]
 
-# ── Load log + new-unit list from GitHub ─────────────────────────────────
-_log_data, sha_log       = read_json_from_gh("upload_log.json")
-upload_log: list         = _log_data if isinstance(_log_data, list) else []
-sha_log                  = sha_log or ""
-
-_nu_data, sha_nu         = read_json_from_gh("new_units.json")
-_persisted_new_units     = set(_nu_data) if isinstance(_nu_data, list) else set()
-sha_nu                   = sha_nu or ""
+upload_log           = _log_data if isinstance(_log_data, list) else []
+sha_log              = sha_log or ""
+_persisted_new_units = set(_nu_data) if isinstance(_nu_data, list) else set()
+sha_nu               = sha_nu or ""
 
 if 'new_unit_uniques' not in st.session_state:
     st.session_state.new_unit_uniques = _persisted_new_units
 
-# ── Last upload note ──────────────────────────────────────────────────────
+# ── Last upload caption ───────────────────────────────────────────────────
+if upload_log:
+    _last = upload_log[-1]
+    st.caption(f"Last updated: **{_last['timestamp']}** · {_last['month']}")
+
 tab5, tab1, tab2, tab3, tab4 = st.tabs(['Monthly Leaderboard', 'Yearly Leaderboard', 'Yearly Tracker', 'New Youth Tracker', 'Upload'])
 
 with tab4:
@@ -179,7 +158,6 @@ with tab4:
                     f"🆕 {new_unit_count} new unit(s) detected — added to all three datasets "
                     f"and hidden from the leaderboard."
                 )
-
                 new_df_rows = new_units[['Unique', 'Boro', 'District', 'Unit', 'Order']].copy()
                 for m in months:
                     new_df_rows[m] = 0.0
@@ -231,18 +209,10 @@ with tab4:
             commit_msg = f"Data update: {month} ({ts})"
 
             with st.spinner("Saving to GitHub..."):
-                write_csv_to_gh("Monthly Membership by unit.csv", sha_df,  df,                 commit_msg)
+                write_csv_to_gh("Monthly Membership by unit.csv", sha_df,  df,                  commit_msg)
                 write_csv_to_gh("Net change by month.csv",        sha_net, df_net.reset_index(), commit_msg)
-                write_csv_to_gh("New Youth.csv",                  sha_ny,  df_ny.reset_index(), commit_msg)
-
-                # Update new_units.json
-                write_json_to_gh(
-                    "new_units.json", sha_nu,
-                    sorted(st.session_state.new_unit_uniques),
-                    f"Update new_units.json ({ts})"
-                )
-
-                # Append to upload log
+                write_csv_to_gh("New Youth.csv",                  sha_ny,  df_ny.reset_index(),  commit_msg)
+                write_json_to_gh("new_units.json",  sha_nu,  sorted(st.session_state.new_unit_uniques), f"Update new_units.json ({ts})")
                 upload_log.append({
                     'timestamp':       ts,
                     'month':           month,
@@ -251,12 +221,10 @@ with tab4:
                     'total_units':     len(df),
                     'new_units_added': new_unit_count,
                 })
-                write_json_to_gh(
-                    "upload_log.json", sha_log,
-                    upload_log,
-                    f"Update upload_log.json ({ts})"
-                )
+                write_json_to_gh("upload_log.json", sha_log, upload_log, f"Update upload_log.json ({ts})")
 
+            # Clear cache so next rerun fetches fresh data from GitHub
+            load_all_data.clear()
             st.success(f"✅ Data updated for **{month}** and committed to GitHub.")
 
         # ── Upload log display ────────────────────────────────────────────────
@@ -287,10 +255,8 @@ display = df_ny_display[
     ['District', 'Unit', 'Order', 'Total New Youth', 'Net Change from January', 'Current Size']
 ].reset_index()
 
-# ── Exclusion list: new units + hardcoded exceptions ─────────────────────
-EXCLUDED_UNITS = {'Pack 0015 BT', 'Pack 0015'}   # always off all leaderboards
+# ── Apply exclusions to both leaderboards ────────────────────────────────
 excluded_uniques = st.session_state.new_unit_uniques
-
 display = display[~display['Unique'].isin(excluded_uniques)]
 display = display[~display['Unit'].isin(EXCLUDED_UNITS)]
 
