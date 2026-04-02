@@ -268,7 +268,12 @@ for unique, start_month in nu_map.items():
 
 df_ny_display['Total New Youth']         = df_ny_adj.sum(axis=1)
 df_ny_display['Net Change from January'] = df_net_display[months].sum(axis=1)
-df_ny_display['Current Size']            = df[month].values
+
+# Current Size: use the most recently uploaded month that has any non-zero data
+_month_totals = df[months].sum()
+_populated    = _month_totals[_month_totals > 0]
+_latest_month = _populated.index[-1] if not _populated.empty else month
+df_ny_display['Current Size'] = df.set_index('Unique')[_latest_month]
 
 # ── Troop net growth adjustment ───────────────────────────────────────────
 is_troop     = df_ny_display['Order'] == '2 - Troops'
