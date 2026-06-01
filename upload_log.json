@@ -126,5 +126,13 @@
     "new_youth_file": "data (6).xlsx",
     "total_units": 267,
     "new_units_added": 0
+  },
+  {
+    "timestamp": "2026-06-01 13:56:07 EST",
+    "month": "June",
+    "membership_file": "data (8).xlsx",
+    "new_youth_file": "data (9).xlsx",
+    "total_units": 267,
+    "new_units_added": 0
   }
 ]
